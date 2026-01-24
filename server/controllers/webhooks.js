@@ -1,105 +1,56 @@
-// require('dotenv').config();
-// const { Webhook }= require('svix');
-// const User= require('../models/User');
-
-
-// // API controoler Function to manage Clerk User with database
-
-// const clerkWebhooks= async (req,res)=>{
-//     try{
-//         const whook= new Webhook(process.env.CLERK_WEBHOOK_SECRET);
-//         await whook.verify(JSON.stringify(req.body),{
-//             "svix-id": req.headers["svix-id"],
-//             "svix-timestamp": req.headers["svix-timestamp"],
-//             "svix-signature": req.headers["svix-signature"],
-//         })
-
-//         const {data, type}= req.body;
-
-//         switch(type){
-//             case 'user.created': {
-//                 const userData= {
-//                     _id: data.id,
-//                     email: data.email_addresses?.[0]?.email_address || null,
-//                     name: data.first_name + " " + data.last_name,   
-//                     imageUrl: data.image_url,
-//                 };
-//                 await User.create(userData);
-//                 console.log("New user created in DB with Clerk ID:", data.id);
-//                 return res.status(200).json({success: true, message:"User created webhook handled"});
-//             }
-//             case 'user.updated': {
-//                 const userData= {
-//                     email: data.email_addresses?.[0]?.email_address || null,
-//                     name: data.first_name + " " + data.last_name,   
-//                     imageUrl: data.image_url,
-//                 };
-//                 await User.findByIdAndUpdate(data.id, userData);
-//                 console.log("New user created in DB with Clerk ID:", data.id);
-//                 return res.status(200).json({success: true, message:"User created webhook handled"});
-//             }
-//             case 'user.deleted': {
-//                 await User.findOneAndDelete({_id: data.id});
-//                 return res.status(200).json({success: true, message:"User deleted webhook handled"});
-//             }
-//             default: {
-//                 console.log("Unhandled webhook type:", type);
-//                 return res.status(400).json({success: true, message:"Unhandled webhook type"});
-//             }
-//         }  
-//     }catch(error){
-//         console.log("Clerk Webhook Error:", error.message);
-//         return res.status(500).json({success: false, message: error.message});  
-//     }
-// }
-
-// module.exports= {clerkWebhooks};
-
-
-
-
 require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const morgan = require('morgan');
+const { Webhook }= require('svix');
+const User= require('../models/User');
 
-// DB
-const { connectDB } = require('./configs/db.js');
-connectDB();
 
-const { connectCloudinary } = require('./configs/cloudinary.js');
-connectCloudinary();
+// API controoler Function to manage Clerk User with database
 
-// Controllers
-const { clerkWebhooks } = require('./controllers/webhooks.js');
-const { educatorRouter } = require('./routes/educatorRoutes.js');
+const clerkWebhooks= async (req,res)=>{
+    try{
+        const whook= new Webhook(process.env.CLERK_WEBHOOK_SECRET);
+        await whook.verify(JSON.stringify(req.body),{
+            "svix-id": req.headers["svix-id"],
+            "svix-timestamp": req.headers["svix-timestamp"],
+            "svix-signature": req.headers["svix-signature"],
+        })
 
-const app = express();
+        const {data, type}= req.body;
 
-// Middlewares
-app.use(cors());
-app.use(morgan('dev'));
+        switch(type){
+            case 'user.created': {
+                const userData= {
+                    _id: data.id,
+                    email: data.email_addresses?.[0]?.email_address || null,
+                    name: data.first_name + " " + data.last_name,   
+                    imageUrl: data.image_url,
+                };
+                await User.create(userData);
+                console.log("New user created in DB with Clerk ID:", data.id);
+                return res.status(200).json({success: true, message:"User created webhook handled"});
+            }
+            case 'user.updated': {
+                const userData= {
+                    email: data.email_addresses?.[0]?.email_address || null,
+                    name: data.first_name + " " + data.last_name,   
+                    imageUrl: data.image_url,
+                };
+                await User.findByIdAndUpdate(data.id, userData);
+                console.log("New user created in DB with Clerk ID:", data.id);
+                return res.status(200).json({success: true, message:"User created webhook handled"});
+            }
+            case 'user.deleted': {
+                await User.findOneAndDelete({_id: data.id});
+                return res.status(200).json({success: true, message:"User deleted webhook handled"});
+            }
+            default: {
+                console.log("Unhandled webhook type:", type);
+                return res.status(400).json({success: true, message:"Unhandled webhook type"});
+            }
+        }  
+    }catch(error){
+        console.log("Clerk Webhook Error:", error.message);
+        return res.status(500).json({success: false, message: error.message});  
+    }
+}
 
-// ✅ CLERK WEBHOOK — MUST COME FIRST & USE RAW
-app.post(
-  '/clerk',
-  express.raw({ type: 'application/json' }),
-  clerkWebhooks
-);
-
-// ✅ Normal body parsers AFTER webhook
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Routes
-app.get('/', (req, res) => {
-  res.status(200).json({ message: "API is running successfully" });
-});
-
-app.use('/api/educator', educatorRouter);
-
-// Port
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+module.exports= {clerkWebhooks};
