@@ -1,0 +1,68 @@
+import React from 'react'
+import {AppContext} from '../../context/AppContext.jsx'
+import { useContext, useState, useEffect } from 'react'
+import SearchBar from '../../components/student/SearchBar';
+import {useParams} from 'react-router-dom';
+import CourseCard from '../../components/student/CourseCard';
+import {assets} from '../../assets/assets'
+import Footer from '../../components/student/Footer.jsx';
+
+const coursesList = () => {
+  const {navigate, allCourses }= useContext(AppContext);
+
+  const {input}= useParams();
+
+  const [filteredCourses, setFilteredCourses]= useState([]);
+
+  useEffect(()=>{
+    if(allCourses && allCourses.length > 0){
+      const tempCourses= allCourses.slice()
+
+      input ? 
+      setFilteredCourses(tempCourses.filter((item)=>{
+        return item.courseTitle.toLowerCase().includes(input.toLowerCase());
+      }))
+      : setFilteredCourses(tempCourses);
+    }
+  },[allCourses, input])
+
+  return (
+    <>  
+      <div className='min-h-screen bg-gray-50'>
+        <div className='bg-white shadow-sm border-b border-gray-200 py-8 px-4 sm:px-6 lg:px-8'>
+          <div className='max-w-7xl mx-auto flex items-center justify-between gap-8'>
+            <div className='flex-shrink-0'>
+              <h1 className='text-3xl sm:text-4xl font-bold text-gray-900 mb-3'>Course List</h1>
+              <p className='text-sm text-gray-600'>
+                <span onClick={()=> navigate('/')} className='hover:text-blue-600 cursor-pointer transition-colors duration-200'>Home</span> / <span className='text-gray-900 font-medium'>Course List</span>
+              </p>
+            </div>
+            <div className='flex-1 max-w-2xl'>
+              <SearchBar data={input}/>
+            </div>
+          </div>
+        </div>
+
+        {
+          input && <div className='inline-flex items-center gap-4 px-4 py-2 -mb-8 text-gray-600'>
+            <p>{input}</p>
+            <img src={assets.cross_icon} alt="" className='cursor-pointer' onClick={()=> navigate('/course-list')}/>
+          </div>
+        }
+
+        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12'>
+          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'>
+            {
+              filteredCourses.map((course, index)=>(
+                  <CourseCard key={index} course={course} />
+              ))
+            }
+          </div>
+        </div>
+      </div>
+      <Footer />
+    </>
+  )
+}
+
+export default coursesList
