@@ -17,6 +17,9 @@ const app= express();
 app.use(cors());
 app.use(morgan('dev'));
 
+const { clerkMiddleware } = require('@clerk/express');  
+app.use(clerkMiddleware());
+
 //body parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
