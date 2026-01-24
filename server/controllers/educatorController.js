@@ -2,7 +2,15 @@ const { clerkClient }= require('@clerk/express');
 
 const updateRoleToEducator = async (req, res)=>{
     try{
+
+        if (!req.auth || !req.auth.userId) {
+            return res.status(401).json({
+            success: false,
+            message: "Unauthorized",
+            });
+        }
         const userId= req.auth.userId
+        
         await clerkClient.users.updateUserMetadata(userId, {
             publicMetadata: {
                 role: 'educator',
