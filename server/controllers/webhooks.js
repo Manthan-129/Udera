@@ -7,61 +7,49 @@ const User= require('../models/User');
 
 const clerkWebhooks= async (req,res)=>{
     try{
-         if (!process.env.CLERK_WEBHOOK_SECRET) {
-            console.error('CLERK_WEBHOOK_SECRET is not set');
-            return res.status(500).json({success: false, message: "Webhook secret not configured"});
-        }
-
         const whook= new Webhook(process.env.CLERK_WEBHOOK_SECRET);
+        await whook.verify(JSON.stringify(req.body),{
+            id: req.headers['svix-id'],
+            timestamp: req.headers['svix-timestamp'],
+            signature: req.headers['svix-signature']
+        })
 
-        const headers= {
-            "svix-id": req.headers["svix-id"],
-            "svix-timestamp": req.headers["svix-timestamp"],
-            "svix-signature": req.headers["svix-signature"]
-        };
-
-        const payload= req.body.toString();  // RAW BUFFER
-
-        const event= whook.verify(payload, headers);
-
-        const { data, type }= event;
+        const {data, type}= req.body;
 
         switch(type){
             case 'user.created': {
-                console.log('Creating user:', data.id);
-                await User.create({
+                const userData= {
                     _id: data.id,
                     email: data.email_addresses[0].email_address,
-                    name: `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim(),
+                    name: data.first_name + " " + data.last_name,   
                     imageUrl: data.image_url,
-                });
-                console.log('User created successfully:', newUser._id);
-                return res.status(200).json({message: "User created successfully"});
+                };
+                await User.create(userData);
+                console.log("New user created in DB with Clerk ID:", data.id);
+                return res.status(200).json({success: true, message:"User created webhook handled"});
             }
             case 'user.updated': {
-                console.log('Updating user:', data.id);
                 const userData= {
                     email: data.email_addresses[0].email_address,
-                    name: `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim(),
+                    name: data.first_name + " " + data.last_name,   
                     imageUrl: data.image_url,
-                }
-                console.log('User updated successfully:', updatedUser._id);
-                await User.findByIdAndUpdate(data.id, userData,{ upsert: true, new: true });
-                return res.status(200).json({success: true, message: "User updated successfully"});
+                };
+                await User.findByIdAndUpdate(data.id, userData);
+                console.log("New user created in DB with Clerk ID:", data.id);
+                return res.status(200).json({success: true, message:"User created webhook handled"});
             }
             case 'user.deleted': {
-                console.log('Deleting user:', data.id);
-                await User.findByIdAndDelete(data.id);
-                console.log('User deleted successfully');
-                return res.status(200).json({success: true, message: "User deleted successfully"});
+                await User.findOneAndDelete({_id: data.id});
+                return res.status(200).json({success: true, message:"User deleted webhook handled"});
             }
-            default: 
-                console.log('Unhandled event type:', type);
-                return res.status(200).json({success: true, message: "Event type not handled"});
-        }
+            default: {
+                console.log("Unhandled webhook type:", type);
+                return res.status(400).json({success: true, message:"Unhandled webhook type"});
+            }
+        }  
     }catch(error){
-        console.log(error.message);
-        return res.status(500).json({success: false, message: error.message});
+        console.log("Clerk Webhook Error:", error.message);
+        return res.status(500).json({success: false, message: error.message});  
     }
 }
 

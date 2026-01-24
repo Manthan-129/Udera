@@ -13,27 +13,16 @@ connectCloudinary();
 //Initialize express
 const app= express();
 
-
-const { clerkMiddleware }= require('@clerk/express');
-
 //Middlewares
 app.use(cors());
 app.use(morgan('dev'));
-
-//Controllers
-const {clerkWebhooks}= require('./controllers/webhooks.js');
-
-// clerk login details for webhooks
-app.post('/api/webhooks/clerk', express.raw({ type: 'application/json' }), clerkWebhooks);
-
 
 //body parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Clerk middleware for protected routes
-app.use(clerkMiddleware());
-
+//Controllers
+const {clerkWebhooks}= require('./controllers/webhooks.js');
 
 //Routers import
 const {educatorRouter}= require('./routes/educatorRoutes.js');
@@ -42,7 +31,7 @@ const {educatorRouter}= require('./routes/educatorRoutes.js');
 app.get('/', (req,res)=>{
     return res.status(200).json({message:"API is running successfully"});
 })
-
+app.use('/clerk', clerkWebhooks);
 app.use('/api/educator', educatorRouter);
 
 //Port
