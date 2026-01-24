@@ -19,18 +19,21 @@ const { clerkMiddleware }= require('@clerk/express');
 //Middlewares
 app.use(cors());
 app.use(morgan('dev'));
-app.use(clerkMiddleware());
 
 //Controllers
 const {clerkWebhooks}= require('./controllers/webhooks.js');
 
 // clerk login details for webhooks
-app.post('/clerk', express.raw({ type: 'application/json' }), clerkWebhooks);
+app.post('/api/webhooks/clerk', express.raw({ type: 'application/json' }), clerkWebhooks);
 
 
 //body parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Clerk middleware for protected routes
+app.use(clerkMiddleware());
+
 
 //Routers import
 const {educatorRouter}= require('./routes/educatorRoutes.js');
