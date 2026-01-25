@@ -18,16 +18,15 @@ cloudinaryConnect();
 app.use(cors());
 app.use(morgan('dev'));
 
-
-//Controllers
+// IMPORTANT: Webhook route BEFORE express.json() middleware
+// This preserves the raw body for Svix verification
 const {clerkWebhooks}= require('./controllers/webhooks');
+app.post('/clerk', express.raw({type: 'application/json'}), clerkWebhooks);
 
 //Routes
 app.get('/', (req,res)=>{
     res.status(200).json({success: true, message: "Welcome to LSM Server" });
 })
-
-app.post('/clerk',express.json(), clerkWebhooks);
 
 app.listen(PORT,()=>{
     console.log(`Server is running on port ${PORT}`);

@@ -7,21 +7,24 @@ const User= require('../models/User');
 const clerkWebhooks= async (req, res)=>{
     try{
         const whook= new Webhook(process.env.CLERK_WEBHOOK_SECRET);
+        
+        // Convert raw body buffer to string
+        const payload = req.body.toString();
 
         await whook.verify(req.body, {
             "svix-id": req.headers["svix-id"],
             "svix-timestamp": req.headers["svix-timestamp"],
-            "svix-signature": req.headers["svix-sginature"],
+            "svix-signature": req.headers["svix-signature"],
         });
 
-        const {data, type}= req.body;
+        const {data, type} = JSON.parse(payload);
 
         switch(type){
             case "user.created":{
                 const UserData= {
                     _id: data.id,
-                    email: data.email.addresses[0].email_address,
-                    firstName: data.first_name + " " + data.last_name,
+                    email: data.email_addresses[0].email_address,
+                    name: data.first_name + " " + data.last_name,
                     imageUrl: data.image_url,
                 }
                 await User.create(UserData);
@@ -30,8 +33,8 @@ const clerkWebhooks= async (req, res)=>{
             }
             case "user.updated":{
                 const UserData= {
-                    email: data.email.addresses[0].email_address,
-                    firstName: data.first_name + " " + data.last_name,
+                    email: data.email_addresses[0].email_address,
+                    name: data.first_name + " " + data.last_name,
                     imageUrl: data.image_url,
                 }
                 await User.findByIdAndUpdate(data.id, UserData);
