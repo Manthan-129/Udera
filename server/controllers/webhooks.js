@@ -1,122 +1,56 @@
-// require('dotenv').config();
-// const { Webhook }= require('svix');
-// const User= require('../models/User');
-
-
-// // API controoler Function to manage Clerk User with database
-
-// const clerkWebhooks= async (req,res)=>{
-//     try{
-//         const whook= new Webhook(process.env.CLERK_WEBHOOK_SECRET);
-//         const event= await whook.verify(JSON.stringify(req.body),{
-//             "svix-id": req.headers["svix-id"],
-//             "svix-timestamp": req.headers["svix-timestamp"],
-//             "svix-signature": req.headers["svix-signature"],
-//         })
-
-//         const {data, type}= event;
-
-//         switch(type){
-//             case 'user.created': {
-//                 const userData= {
-//                     _id: data.id,
-//                     email: data.email_addresses?.[0]?.email_address || null,
-//                     name: data.first_name + " " + data.last_name,   
-//                     imageUrl: data.image_url,
-//                 };
-//                 await User.create(userData);
-//                 console.log("New user created in DB with Clerk ID:", data.id);
-//                 return res.status(200).json({success: true, message:"User created webhook handled"});
-//             }
-//             case 'user.updated': {
-//                 const userData= {
-//                     email: data.email_addresses?.[0]?.email_address || null,
-//                     name: data.first_name + " " + data.last_name,   
-//                     imageUrl: data.image_url,
-//                 };
-//                 await User.findByIdAndUpdate(data.id, userData);
-//                 console.log("New user created in DB with Clerk ID:", data.id);
-//                 return res.status(200).json({success: true, message:"User created webhook handled"});
-//             }
-//             case 'user.deleted': {
-//                 await User.findOneAndDelete({_id: data.id});
-//                 return res.status(200).json({success: true, message:"User deleted webhook handled"});
-//             }
-//             default: {
-//                 console.log("Unhandled webhook type:", type);
-//                 return res.status(400).json({success: true, message:"Unhandled webhook type"});
-//             }
-//         }  
-//     }catch(error){
-//         console.log("Clerk Webhook Error:", error.message);
-//         return res.status(500).json({success: false, message: error.message});  
-//     }
-// }
-
-// module.exports= {clerkWebhooks};
-
-
 require('dotenv').config();
-const { Webhook } = require('svix');
-const User = require('../models/User');
+const { Webhook } = require("svix");
+const User= require('../models/User');
 
-const clerkWebhooks = async (req, res) => {
-  const wh = new Webhook(process.env.CLERK_WEBHOOK_SECRET);
+// API CONTROLLER FUNCTION TO MANAGE CLERK USER WITH DATABASE 
 
-  // 🔴 EXACT HEADER NAMES REQUIRED
-  const headers = {
-    "svix-id": req.headers["svix-id"],
-    "svix-timestamp": req.headers["svix-timestamp"],
-    "svix-signature": req.headers["svix-signature"],
-  };
+const clerkWebhooks= async (req, res)=>{
+    try{
+        const whook= new Webhook(process.env.CLERK_WEBHOOK_SECRET);
 
-  let event;
+        await whook.verify(req.body, {
+            "svix-id": req.headers["svix-id"],
+            "svix-timestamp": req.headers["svix-timestamp"],
+            "svix-signature": req.headers["svix-sginature"],
+        });
 
-  // 🔐 VERIFY WEBHOOK (RAW BODY ONLY)
-  try {
-    event = wh.verify(req.body, headers);
-  } catch (err) {
-    console.error("❌ Webhook verification failed:", err.message);
-    return res.status(400).json({ success: false });
-  }
+        const {data, type}= req.body;
 
-  const { data, type } = event;
-
-  console.log("🔥 EVENT TYPE:", type);
-  console.log("🔥 USER ID:", data?.id);
-
-  try {
-    switch (type) {
-      case "user.created":
-      case "user.updated": {
-        await User.findByIdAndUpdate(
-          data.id,
-          {
-            email: data.email_addresses?.[0]?.email_address || null,
-            name: `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim(),
-            imageUrl: data.image_url,
-          },
-          { upsert: true }
-        );
-        console.log("✅ MongoDB user synced:", data.id);
-        break;
-      }
-
-      case "user.deleted": {
-        await User.findByIdAndDelete(data.id);
-        console.log("🗑 MongoDB user deleted:", data.id);
-        break;
-      }
-
-      default:
-        console.log("ℹ️ Ignored event:", type);
+        switch(type){
+            case "user.created":{
+                const UserData= {
+                    _id: data.id,
+                    email: data.email.addresses[0].email_address,
+                    firstName: data.first_name + " " + data.last_name,
+                    imageUrl: data.image_url,
+                }
+                await User.create(UserData);
+                res.status(200).json({message: "User Created Successfully"});
+                break;
+            }
+            case "user.updated":{
+                const UserData= {
+                    email: data.email.addresses[0].email_address,
+                    firstName: data.first_name + " " + data.last_name,
+                    imageUrl: data.image_url,
+                }
+                await User.findByIdAndUpdate(data.id, UserData);
+                res.status(200).json({message: "User Updated Successfully"});
+                break;
+            }
+            case "user.deleted":{
+                await User.findByIdAndDelete(data.id);
+                res.status(200).json({message: "User Deleted Successfully"});
+                break;
+            }
+            default: {
+                res.status(200).json({message: "Event type not handled"});
+                break;
+            }
+        }
+    }catch(error){
+        return res.status(400).json({message: "Webhook Error", error: error.message});
     }
+}
 
-    return res.status(200).json({ success: true });
-  } catch (err) {
-    console.error("❌ MongoDB error:", err.message);
-    return res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-module.exports = { clerkWebhooks };
+module.exports= {clerkWebhooks};

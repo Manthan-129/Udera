@@ -23,6 +23,6 @@ HashCode to add the Stars - > &#9733;
 
 for backend-> 
 npm init -y
-npm install express nodemon dotenv cors cloudinary mongoose multer stripe svix@1.42.0 @clerk/express morgan 
+npm install express nodemon dotenv cors cloudinary mongoose multer stripe svix@1.42.0 @clerk/express morgan razorpay
 
 "server": "nodemon server.js", needs to do change in the package.json

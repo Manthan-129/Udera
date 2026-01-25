@@ -1,26 +1,26 @@
-// const mongoose= require('mongoose');
+const mongoose= require('mongoose');
 
-// const userSchema = new mongoose.Schema({
-//   _id: { type: String, required: true },
-//   name: { type: String },
-//   email: { type: String, default: null },
-//   imageUrl: { type: String },
-// }, { timestamps: true });
+const UserSchema= new mongoose.Schema({
+    _id:{
+        type: String,
+        required: true,
+    },
+    email: {
+        type: String,
+        default: null,
+    },
+    name: {
+        type: String,
+        required: true,
+    },
+    imageUrl: {
+        type: String,
+        required: true,
+    },
+    enrolledCourses: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Course',
+    }]
+},{timestamps: true});
 
-// const User = mongoose.models.User || mongoose.model('User', userSchema);
-
-// module.exports= User;
-
-
-const mongoose = require('mongoose');
-
-const userSchema = new mongoose.Schema({
-  _id: { type: String, required: true },
-  name: { type: String },
-  email: { type: String, default: null },
-  imageUrl: { type: String },
-}, { timestamps: true });
-
-const User = mongoose.models.User || mongoose.model('User', userSchema);
-
-module.exports = User;
+module.exports= mongoose.model('User', UserSchema);
