@@ -11,7 +11,7 @@ const clerkWebhooks= async (req, res)=>{
         // Convert raw body buffer to string
         const payload = req.body.toString();
 
-        await whook.verify(req.body, {
+        await whook.verify(payload, {
             "svix-id": req.headers["svix-id"],
             "svix-timestamp": req.headers["svix-timestamp"],
             "svix-signature": req.headers["svix-signature"],
@@ -52,6 +52,7 @@ const clerkWebhooks= async (req, res)=>{
             }
         }
     }catch(error){
+        console.error('Webhook error:', error);
         return res.status(400).json({message: "Webhook Error", error: error.message});
     }
 }
