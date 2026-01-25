@@ -1,59 +1,49 @@
-require('dotenv').config();
-const { Webhook } = require("svix");
-const User= require('../models/User');
+const { Webhook } = require('svix');
+const User= require('../models/User.js');
 
-// API CONTROLLER FUNCTION TO MANAGE CLERK USER WITH DATABASE 
-
-const clerkWebhooks= async (req, res)=>{
+const clerkWebhooks = async (req, res)=>{
     try{
-        const whook= new Webhook(process.env.CLERK_WEBHOOK_SECRET);
-        
-        // Convert raw body buffer to string
-        const payload = req.body.toString();
+        const whook = new Webhook(process.env.CLERK_WEBHOOK_SECRET);
 
-        await whook.verify(payload, {
-            "svix-id": req.headers["svix-id"],
-            "svix-timestamp": req.headers["svix-timestamp"],
-            "svix-signature": req.headers["svix-signature"],
+        await whook.verify(JSON.stringify(req.body),{
+            'svix-id': req.headers['svix-id'],
+            'svix-timestamp': req.headers['svix-timestamp'],
+            'svix-signature': req.headers['svix-signature'],    
         });
 
-        const {data, type} = JSON.parse(payload);
+        const {data, type}= req.body;
 
         switch(type){
-            case "user.created":{
-                const UserData= {
+            case 'user.created':{
+                const userData ={
                     _id: data.id,
-                    email: data.email_addresses[0].email_address || null,
-                    name: data.first_name + " " + data.last_name,
-                    imageUrl: data.image_url,
+                    name: data.first_name + ' ' + data.last_name,
+                    email: data.email_addresses[0].email_address,
+                    imageUrl: data.profile_image_url,
                 }
-                await User.create(UserData);
-                res.status(200).json({message: "User Created Successfully"});
-                break;
+                await User.create(userData);
+                return res.status(200).json({success: true, message: 'User created successfully'});
             }
-            case "user.updated":{
-                const UserData= {
-                    email: data.email_addresses[0].email_address || null,
-                    name: data.first_name + " " + data.last_name,
-                    imageUrl: data.image_url,
+            case 'user.updated':{   
+                const updatedData ={
+                    name: data.first_name + ' ' + data.last_name,
+                    email: data.email_addresses[0].email_address,
+                    imageUrl: data.profile_image_url,
                 }
-                await User.findByIdAndUpdate(data.id, UserData);
-                res.status(200).json({message: "User Updated Successfully"});
-                break;
+                await User.findByIdAndUpdate(data.id, updatedData);
+                return res.status(200).json({success: true, message: 'User updated successfully'});
             }
-            case "user.deleted":{
+            case 'user.deleted':{
                 await User.findByIdAndDelete(data.id);
-                res.status(200).json({message: "User Deleted Successfully"});
-                break;
+                return res.status(200).json({success: true, message: 'User deleted successfully'});
             }
             default: {
-                res.status(200).json({message: "Event type not handled"});
-                break;
+                return res.status(400).json({success: false, message: 'Unhandled webhook type'});
             }
         }
     }catch(error){
-        console.error('Webhook error:', error);
-        return res.status(400).json({message: "Webhook Error", error: error.message});
+        console.error("Error processing webhook:", error);
+        return res.status(400).json({success: false, message: 'Webhook processing failed'});
     }
 }
 

@@ -1,15 +1,15 @@
 const mongoose= require('mongoose');
 
 const UserSchema= new mongoose.Schema({
-    _id:{
+    _id: {
+        type: String,
+        required: true,
+    },
+    name: {
         type: String,
         required: true,
     },
     email: {
-        type: String,
-        default: null,
-    },
-    name: {
         type: String,
         required: true,
     },
@@ -17,10 +17,12 @@ const UserSchema= new mongoose.Schema({
         type: String,
         required: true,
     },
-    enrolledCourses: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Course',
-    }]
+    enrolledCourses: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Course',
+        }
+    ],
 },{timestamps: true});
 
 module.exports= mongoose.model('User', UserSchema);

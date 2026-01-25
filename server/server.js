@@ -3,31 +3,29 @@ const express= require('express');
 const cors= require('cors');
 const morgan= require('morgan');
 
-//Initialize express app
+const { clerkWebhooks }= require('./controllers/webhooks.js');
+
+//Initialize express
 const app= express();
 
-const PORT= process.env.PORT || 5000;
-
-// Database Connection
-const {connectDB}= require('./config/db');
+//connect to data base
+const {connectDB}= require('./configs/db.js');
 connectDB();
-const {cloudinaryConnect}= require('./config/cloudinary');
-cloudinaryConnect();
 
 //Middlewares
 app.use(cors());
 app.use(morgan('dev'));
 
-// IMPORTANT: Webhook route BEFORE express.json() middleware
-// This preserves the raw body for Svix verification
-const {clerkWebhooks}= require('./controllers/webhooks');
-app.post('/clerk', express.raw({type: 'application/json'}), clerkWebhooks);
 
 //Routes
-app.get('/', (req,res)=>{
-    res.status(200).json({success: true, message: "Welcome to LSM Server" });
+app.get('/', (req, res)=>{
+    res.status(200).json({success: true, message: 'Welcome to the LSM Server'});
 })
+app.post('/clerk', express.json(), clerkWebhooks);
 
-app.listen(PORT,()=>{
+
+const PORT= process.env.PORT || 5000;
+
+app.listen(PORT, ()=>{
     console.log(`Server is running on port ${PORT}`);
-})
+});
