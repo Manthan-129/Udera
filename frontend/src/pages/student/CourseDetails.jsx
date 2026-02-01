@@ -6,29 +6,67 @@ import { assets } from '../../assets/assets';
 import humanizeDuration from 'humanize-duration';
 import Footer from '../../components/student/Footer.jsx';
 import Youtube from 'react-youtube';
+import axios from 'axios';
+import { toast } from 'react-toastify';
 
-const courseDetails = () => {
+const CourseDetails = () => {
 
   const {id}= useParams();
 
   const [courseData, setCourseData]= useState(null);
 
-  const {allCourses, calculateRating, calculateChapterTime, calculateCourseDuration, calculateNumberOfLectures, currency }= useContext(AppContext);
+  const {allCourses, calculateRating, calculateChapterTime, calculateCourseDuration, calculateNumberOfLectures, currency, backendUrl, user, token, isAlreadyEnrolled, setIsAlreadyEnrolled }= useContext(AppContext);
 
   const [openSections, setOpenSections]= useState({});
-
-  const [isAlreadyEnrolled, setIsAlreadyEnrolled]= useState(false);
 
   const [playerData, setPlayerData]= useState(null);
 
   const fetchCourseData= async ()=>{
-    const findCourse= allCourses.find((course)=> course._id === id);
-    setCourseData(findCourse);
+    try{
+      const response= await axios.get(backendUrl + '/api/course/' + id);
+      if(response.data.success){
+        setCourseData(response.data.course);
+      }else{
+        toast.error(response.data.message);
+      }
+    }catch(error){
+      console.log("Error fetching course data:", error);
+      toast.error(error.message);
+    }
   }
 
   useEffect(()=>{
-    fetchCourseData();
-  },[allCourses])
+    if(token && id){
+      fetchCourseData();
+    }
+  },[id, token]);
+
+  const enrollCourse= async ()=>{
+    if(!user){
+      return toast.info("Please login to enroll in the course");
+    }
+    if(isAlreadyEnrolled){
+      return toast.info("You are already enrolled in this course");
+    }
+    try{
+      const response= await axios.post(backendUrl + '/api/user/purchase',{
+        courseId: courseData._id
+      },{
+        headers: {
+          Authorization : `Bearer ${token}`
+        }
+      });
+      if(response.data.success){
+        const {session_url}= response.data;
+        window.location.replace(session_url);
+      }else{
+        toast.error(response.data.message);
+      }
+    }catch(error){
+      console.log("Error while purchasing the course", error.message);
+      toast.error(error.message);
+    }
+  }
 
   const toggleSection = (index)=>{
     setOpenSections((prev)=>(
@@ -68,7 +106,7 @@ const courseDetails = () => {
                               <p className='text-sm sm:text-base text-gray-600 flex items-center gap-1'>
                                 <span className='font-semibold text-gray-900'>{courseData.enrolledStudents.length}</span> {courseData.enrolledStudents.length > 1 ? "students enrolled" : "student enrolled"}
                               </p>
-                              <p className='text-sm sm:text-base text-gray-600'>Created by <span className='font-semibold text-blue-600 hover:text-blue-700 cursor-pointer'>Udera</span></p>
+                              <p className='text-sm sm:text-base text-gray-600'>Created by <span className='font-semibold text-blue-600 hover:text-blue-700 cursor-pointer'>{courseData.educator.name}</span></p>
                           </div>
                   
                   <div className='bg-white rounded-lg sm:rounded-xl shadow-md border border-gray-200 overflow-hidden'>
@@ -203,7 +241,7 @@ const courseDetails = () => {
                     </div>
                   </div>
 
-                  <button className='w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-3 sm:py-4 px-4 sm:px-6 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-sm sm:text-base'>{isAlreadyEnrolled ? "Already Enrolled" : "Enroll Now"}</button>
+                  <button onClick={enrollCourse} className='w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-3 sm:py-4 px-4 sm:px-6 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-sm sm:text-base'>{isAlreadyEnrolled ? "Already Enrolled" : "Enroll Now"}</button>
 
                   <div className='bg-gradient-to-br from-gray-50 to-blue-50 rounded-lg sm:rounded-xl p-4 sm:p-5 border border-gray-200'>
                     <p className='font-bold text-gray-900 mb-3 sm:mb-4 text-base sm:text-lg'>What's included:</p>
@@ -250,4 +288,4 @@ const courseDetails = () => {
   ) : <Loading />
 }
 
-export default courseDetails
+export default CourseDetails

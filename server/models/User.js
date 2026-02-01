@@ -1,28 +1,15 @@
 const mongoose= require('mongoose');
 
 const UserSchema= new mongoose.Schema({
-    _id: {
-        type: String,
-        required: true,
-    },
-    name: {
-        type: String,
-        required: true,
-    },
-    email: {
-        type: String,
-        required: true,
-    },
-    imageUrl: {
-        type: String,
-        required: true,
-    },
-    enrolledCourses: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Course',
-        }
-    ],
+    name: {type: String, required: true},
+    email: {type: String, required: true, unique: true},
+    password: {type: String, required: false, select: false},
+    imageUrl: {type: String, default: ''},
+    enrolledCourses: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Course'
+    }],
+    role: {type: String, enum: ['educator', 'student'], default: 'student'},
 },{timestamps: true});
 
 module.exports= mongoose.model('User', UserSchema);

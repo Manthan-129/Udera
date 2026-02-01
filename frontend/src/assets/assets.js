@@ -42,12 +42,13 @@ import profile_img from './profile_img.png'
 import profile_img2 from './profile_img2.png'
 import profile_img3 from './profile_img3.png'
 import lesson_icon from './lesson_icon.svg'
-
+import local_img from './local_img.png'
 
 export const assets = {
     logo,
     search_icon,
     sketch,
+    local_img,
     microsoft_logo,
     walmart_logo,
     accenture_logo,

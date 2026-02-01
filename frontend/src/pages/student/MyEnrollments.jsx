@@ -1,31 +1,54 @@
 import React from 'react'
-import { useContext } from 'react'
+import { useContext, useEffect } from 'react'
 import { AppContext } from '../../context/AppContext.jsx'
 import { Line } from 'rc-progress';
 import Footer from '../../components/student/Footer.jsx';
+import axios from 'axios';
+import { toast } from 'react-toastify';
 
 const MyEnrollments = () => {
-  const {enrolledCourses, calculateCourseDuration, navigate } = useContext(AppContext);
+  const {enrolledCourses, calculateCourseDuration, navigate, user, fetchUserEnrolledCourses, backendUrl, token, calculateNumberOfLectures } = useContext(AppContext);
 
   const [progressArray, setProgressArray]= React.useState(
-    [
-    {lectureCompleted: 2, totalLectures: 4},
-    {lectureCompleted: 1, totalLectures: 5},
-    {lectureCompleted: 3, totalLectures: 6},
-    {lectureCompleted: 4, totalLectures: 4},
-    {lectureCompleted: 0, totalLectures: 3},
-    {lectureCompleted: 5, totalLectures: 7},
-    {lectureCompleted: 6, totalLectures: 8},
-    {lectureCompleted: 2, totalLectures: 6},
-    {lectureCompleted: 4, totalLectures: 10},
-    {lectureCompleted: 3, totalLectures: 5},
-    {lectureCompleted: 7, totalLectures: 7},
-    {lectureCompleted: 1, totalLectures: 4},
-    {lectureCompleted: 0, totalLectures: 2},
-    {lectureCompleted: 5, totalLectures: 5}
-    ]
+    []
   );
   
+  const getCourseProgress= async ()=>{
+    try{
+      const tempProgressArray = await Promise.all(
+        enrolledCourses.map(async (course)=>{
+          try{
+            const response= await axios.post(backendUrl + '/api/user/get-course-progress',{courseId : course._id}, {headers: {Authorization: `Bearer ${token}`}});
+            let totalLectures= calculateNumberOfLectures(course);
+            
+            const lectureCompleted = response.data.progressData && response.data.progressData.lectureCompleted
+                                    ? response.data.progressData.lectureCompleted.length
+                                    : 0;
+
+            return {totalLectures: totalLectures, lectureCompleted: lectureCompleted};
+          }catch(error){
+            console.log("Error fetching course progress for courseId:", course._id, error.message);
+          }
+        })
+      )
+      setProgressArray(tempProgressArray);
+    }catch(error){
+      toast.error(error.message);
+    }
+  }
+
+  useEffect(()=>{
+    if(user){
+      fetchUserEnrolledCourses();
+    }
+  },[user])
+
+  useEffect(()=>{
+    if(enrolledCourses.length > 0){
+      getCourseProgress();
+    }
+  },[enrolledCourses])
+
   return (
     <>
       <div className='min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8'>

@@ -2,19 +2,34 @@ import React, { useContext, useEffect, useState } from 'react'
 import { AppContext } from '../../context/AppContext';
 import { dummyDashboardData, assets } from '../../assets/assets';
 import Loading from '../../components/student/Loading.jsx';
+import axios from 'axios';
+import { toast } from 'react-toastify';
 
 const Dashboard = () => {
 
-  const { currency }= useContext(AppContext);
+  const { currency, backendUrl, token, isEducator }= useContext(AppContext);
   const [dashboardData, setDashboardData] = useState(null);
 
   const fetchDashboardData= async ()=>{
-    setDashboardData(dummyDashboardData)
+    try{
+      const response= await axios.get(backendUrl + '/api/educator/dashboard',{
+        headers: {Authorization: `Bearer ${token}`}
+      });
+      if(response.data.success){
+        setDashboardData(response.data.dashboardData);
+      }else{
+        toast.error(response.data.message);
+      }
+    }catch(error){
+      toast.error(error.message);
+    }
   }
 
   useEffect(()=>{
-    fetchDashboardData();
-  },[]);
+    if(isEducator){
+      fetchDashboardData();
+    }
+  },[isEducator]);
 
   return dashboardData ? (
     <div className='min-h-screen bg-gray-50 py-10 sm:py-12 lg:py-16'>
@@ -73,7 +88,7 @@ const Dashboard = () => {
 
               <div>
                 <p className='text-3xl sm:text-4xl font-bold text-gray-900 mb-1'>
-                  {currency}{dashboardData.totalEarnings}
+                  {currency}{dashboardData.totalEarning}
                 </p>
 
                 <p className='text-sm sm:text-base text-gray-600 font-medium'>
