@@ -36,10 +36,8 @@ const CourseDetails = () => {
   }
 
   useEffect(()=>{
-    if(token && id){
-      fetchCourseData();
-    }
-  },[id, token]);
+    fetchCourseData();
+  });
 
   const enrollCourse= async ()=>{
     if(!user){
