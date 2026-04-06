@@ -48,3 +48,7 @@ app.use('/api/course', courseRouter);
 app.use('/api/user', userRouter);
 
 startServer();
+
+app.get('/api/health', (req, res)=> {
+    res.status(200).json({status: 'ok', message: 'API is healthy'});
+})
