@@ -3,13 +3,15 @@ import { AppContext } from "../../context/AppContext"
 import Loading from '../../components/student/Loading.jsx';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import Modal from '../../components/common/Modal.jsx';
 
 const MyCourse = () => {
 
-  const { currency, backendUrl, isEducator, token }= useContext(AppContext);
+  const { formatCurrency, backendUrl, isEducator, token }= useContext(AppContext);
 
   const [courses, setCourses]= useState(null);
-
+  const [courseToDelete, setCourseToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const fetchCourseData= async ()=>{
     try{
       const response= await axios.get(backendUrl + '/api/educator/courses',{
@@ -30,51 +32,83 @@ const MyCourse = () => {
       fetchCourseData();
     }
   },[isEducator]);
+  
+  const handleDeleteCourse = async () => {
+    if (!courseToDelete || isDeleting) return;
+
+    try {
+      setIsDeleting(true);
+      const response = await axios.delete(
+        `${backendUrl}/api/educator/courses/${courseToDelete._id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
+        setCourses(response.data.allCourses || courses.filter((course) => course._id !== courseToDelete._id));
+        toast.success(response.data.message || 'Course deleted successfully');
+        setCourseToDelete(null);
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return courses ? (
-    <div className='min-h-screen bg-gray-50 py-10 sm:py-12 lg:py-16'>
-      <div className='max-w-7xl mx-auto px-6 sm:px-8 lg:px-12'>
+    <div className='min-h-screen bg-slate-50 py-6 sm:py-8 lg:py-10'>
+      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-10'>
         
-        <h2 className='text-3xl sm:text-4xl font-bold text-gray-900 mb-8 sm:mb-10'>
+        <h2 className='text-2xl sm:text-3xl font-bold text-slate-900 mb-6 sm:mb-8'>
           My Courses
-        </h2>
+        </h2> 
 
-        <div className='bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden'>
+        <p className='text-sm sm:text-base text-slate-600 mb-4 sm:mb-6'>
+          You can delete only the courses uploaded from your educator account.
+        </p>
+
+        <div className='bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden'>
           <div className='overflow-x-auto'>
-            <table className='w-full'>
-              <thead className='bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200'>
+            <table className='w-full min-w-190'>
+              <thead className='bg-linear-to-r from-sky-50 to-cyan-50 border-b border-slate-200'>
                 <tr>
-                  <th className='px-6 py-5 text-left text-sm sm:text-base font-semibold text-gray-900'>
+                  <th className='px-4 sm:px-6 py-4 sm:py-5 text-left text-xs sm:text-sm font-semibold text-slate-900 uppercase tracking-wide'>
                     All Courses
                   </th>
-
-                  <th className='px-6 py-5 text-left text-sm sm:text-base font-semibold text-gray-900'>
+                
+                  <th className='px-4 sm:px-6 py-4 sm:py-5 text-left text-xs sm:text-sm font-semibold text-slate-900 uppercase tracking-wide'>
                     Earning
                   </th>
 
-                  <th className='px-6 py-5 text-left text-sm sm:text-base font-semibold text-gray-900'>
+                  <th className='px-4 sm:px-6 py-4 sm:py-5 text-left text-xs sm:text-sm font-semibold text-slate-900 uppercase tracking-wide'>
                     Students
                   </th>
 
-                  <th className='px-6 py-5 text-left text-sm sm:text-base font-semibold text-gray-900'>
+                  <th className='px-4 sm:px-6 py-4 sm:py-5 text-left text-xs sm:text-sm font-semibold text-slate-900 uppercase tracking-wide'>
                     Published On
+                  </th>
+
+                  <th className='px-4 sm:px-6 py-4 sm:py-5 text-left text-xs sm:text-sm font-semibold text-slate-900 uppercase tracking-wide'>
+                    Action
                   </th>
                 </tr>
               </thead>
 
               <tbody className='divide-y divide-gray-200'>
                 {
-                  courses.map((course, index)=>(
+                  courses.map((course)=>(
                     <tr 
-                      key={course.id} 
+                      key={course._id} 
                       className='hover:bg-gray-50 transition-colors duration-200'
                     >
-                      <td className='px-6 py-5'>
-                        <div className='flex items-center gap-4 sm:gap-5'>
+                      <td className='px-4 sm:px-6 py-4 sm:py-5'>
+                        <div className='flex items-center gap-3 sm:gap-4'>
                           <img 
                             src={course.courseThumbnail} 
                             alt="course Thumbnail" 
-                            className='w-16 h-16 sm:w-20 sm:h-20 rounded-lg object-cover flex-shrink-0 shadow-sm border border-gray-200'
+                            className='w-14 h-14 sm:w-16 sm:h-16 rounded-lg object-cover shrink-0 shadow-sm border border-slate-200'
                           />
 
                           <span className='font-semibold text-gray-900 text-sm sm:text-base line-clamp-2'>
@@ -83,16 +117,29 @@ const MyCourse = () => {
                         </div>
                       </td>
 
-                      <td className='px-6 py-5 text-sm sm:text-base font-semibold text-green-600'>
-                        {currency} {Math.floor(course.enrolledStudents.length*(course.coursePrice - course.discount*course.coursePrice/100)).toFixed(2)}
+
+
+                      <td className='px-4 sm:px-6 py-4 sm:py-5 text-sm sm:text-base font-semibold text-emerald-600'>
+                        {formatCurrency(course.enrolledStudents.length * (course.coursePrice - course.discount*course.coursePrice/100))}
                       </td>
 
-                      <td className='px-6 py-5 text-sm sm:text-base font-medium text-gray-700'>
+                      <td className='px-4 sm:px-6 py-4 sm:py-5 text-sm sm:text-base font-medium text-gray-700'>
                         {course.enrolledStudents.length}
                       </td>
 
-                      <td className='px-6 py-5 text-sm sm:text-base text-gray-600'>
+                      <td className='px-4 sm:px-6 py-4 sm:py-5 text-sm sm:text-base text-gray-600'>
                         {new Date(course.createdAt).toLocaleDateString()}
+                      </td>
+
+                      <td className='px-4 sm:px-6 py-4 sm:py-5'>
+                        <button
+                          type='button'
+                          onClick={() => setCourseToDelete(course)}
+                          disabled={isDeleting}
+                          className='rounded-lg border border-red-200 px-3 py-2 text-xs sm:text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60'
+                        >
+                          Delete
+                        </button>
                       </td>
                     </tr>
                   ))
@@ -103,6 +150,38 @@ const MyCourse = () => {
         </div>
 
       </div>
+
+      <Modal
+        isOpen={!!courseToDelete}
+        title='Delete Course'
+        description='This action is permanent. The course and related data can no longer be accessed.'
+        onClose={() => !isDeleting && setCourseToDelete(null)}
+      >
+        {courseToDelete && (
+          <p className='text-sm text-slate-700'>
+            Are you sure you want to delete <span className='font-semibold'>{courseToDelete.courseTitle}</span>?
+          </p>
+        )}
+        <div className='mt-5 flex justify-end gap-3'>
+          <button
+            type='button'
+            onClick={() => setCourseToDelete(null)}
+            disabled={isDeleting}
+            className='rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60'
+          >
+            Cancel
+          </button>
+          <button
+            type='button'
+            onClick={handleDeleteCourse}
+            disabled={isDeleting}
+            className='rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60'
+          >
+            {isDeleting ? 'Deleting...' : 'Confirm Delete'}
+          </button>
+        </div>
+      </Modal>
+      
     </div>
   )
   : <Loading />

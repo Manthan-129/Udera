@@ -10,8 +10,17 @@ export const AppContext= createContext();
 
 export const AppContextProvider = (props) => {
 
-    const currency= import.meta.env.VITE_CURRENCY; 
+    const currencyCode = (import.meta.env.VITE_CURRENCY || 'INR').replace(/['"]/g, '').trim().toUpperCase();
 
+    const formatCurrency = (amount) => {
+      const value = Number(amount);
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currencyCode,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(Number.isFinite(value) ? value : 0);
+    };
     const navigate= useNavigate();
 
      // New user authentication state
@@ -19,8 +28,6 @@ export const AppContextProvider = (props) => {
     const [loading, setLoading] = useState(true)
     const [token, setToken] = useState(localStorage.getItem('token') || null)
     const [login, setLogin]= useState(false);
-
-    const [isAlreadyEnrolled, setIsAlreadyEnrolled]= useState(false);
 
     const backendUrl= import.meta.env.VITE_BACKEND_URL;
 
@@ -81,6 +88,7 @@ export const AppContextProvider = (props) => {
     localStorage.removeItem('token')
     setToken(null)
     setUser(null)
+    setEnrolledCourses([])
     navigate('/')
   }
     // Fetch All Courses
@@ -114,13 +122,26 @@ export const AppContextProvider = (props) => {
       return totalRating;
     }
 
+
+    // Function to Calculate Course Chapter Time
+    const formatDuration = (minutes) => {
+      const safeMinutes = Number(minutes);
+      const totalSeconds = Math.max(0, Math.round((Number.isFinite(safeMinutes) ? safeMinutes : 0) * 60));
+
+      return humanizeDuration(totalSeconds * 1000, {
+        units: ['h', 'm'],
+        round: true,
+        largest: 2,
+      });
+    }
+
     // Function to Calculate Course Chapter Time
     const calculateChapterTime= (chapter)=>{
       let totalTime= 0;
       chapter.chapterContent.map((lecture)=>{
         totalTime+= lecture.lectureDuration;
       })
-      return humanizeDuration(totalTime*60*1000, {units: ["h","m"]});
+       return formatDuration(totalTime);
     }
 
     const calculateCourseDuration= (course)=>{
@@ -128,7 +149,7 @@ export const AppContextProvider = (props) => {
       course.courseContent.map((chapter)=> chapter.chapterContent.map((lecture)=>{
         totalTime+= lecture.lectureDuration;
       }))
-      return humanizeDuration(totalTime*60*1000, {units: ["h","m"]});
+      return formatDuration(totalTime);
     }
 
     const calculateNumberOfLectures= (course)=>{
@@ -163,6 +184,8 @@ export const AppContextProvider = (props) => {
     useEffect(()=>{
       if(token){
       fetchUserEnrolledCourses();
+      }else{
+        setEnrolledCourses([]);
       }
     },[token])
 
@@ -171,19 +194,20 @@ export const AppContextProvider = (props) => {
         setLogin,
         user,
         setUser,
-        isAlreadyEnrolled, setIsAlreadyEnrolled,
         loading,
         setLoading,
         token,
         logoutUser,
         backendUrl,
         setToken,
-        currency,
+        currency: currencyCode,
+        formatCurrency,
         allCourses, setAllCourses,
         navigate,
         calculateRating,
         isEducator, setEducator,
         calculateChapterTime, calculateCourseDuration, calculateNumberOfLectures,
+        formatDuration,
         enrolledCourses, setEnrolledCourses, fetchUserEnrolledCourses,
         fetchUserData, fetchAllCourses
     }
