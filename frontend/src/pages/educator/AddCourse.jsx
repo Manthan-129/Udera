@@ -575,13 +575,11 @@ const AddCourse = () => {
 
             <label className="flex items-center gap-2 text-sm text-slate-700">
               <input
-                type="text"
-                placeholder="Lecture URL"
-                value={lectureDetails.lectureUrl}
+                type="checkbox"
+                checked={lectureDetails.isPreviewFree}
                 onChange={(e) =>
                   setLectureDetails({
                     ...lectureDetails,
-                    lectureUrl: e.target.value,
                     isPreviewFree: e.target.checked,
                   })
                 }
